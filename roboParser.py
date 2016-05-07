@@ -4,6 +4,7 @@
 import sys
 import urllib2
 import argparse
+import time
 
 def parse(urlBase, delay, ignore):
 
@@ -27,7 +28,8 @@ def parse(urlBase, delay, ignore):
 		except urllib2.HTTPError as e:
 			if not ignore:	
 				print "{0:3} -- {1:40} -- {2:5}".format(e.code, item, str(e.headers['content-length']))
-	
+
+		time.sleep(delay/1000)
 
 
 if __name__ == "__main__":
