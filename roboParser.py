@@ -22,7 +22,6 @@ def getSize(httpResp):
 		headers = httpResp.headers.keys()
 		if 'transfer-encoding' in headers and 'content-length' not in headers:
 			if httpResp.headers['transfer-encoding'] == 'chunked':
-				contentSize = "Chunked"
 				return "Chunked"	
 		return "ERROR"
 
@@ -47,7 +46,6 @@ def parse(urlBase, delay, ignore):
 		robResp = "XXX"
 			
 		try:
-			#robResp = urllib2.urlopen(url)
 			robResp = opener.open(url)
 		
 			print "{0:3} -- {1:40} -- {2:5}".format(robResp.code, item, getSize(robResp))
