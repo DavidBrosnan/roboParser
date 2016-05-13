@@ -6,28 +6,60 @@ import urllib2
 import argparse
 import time
 
+class RedirectHandler(urllib2.HTTPRedirectHandler):
+	
+	def http_error_302(self, req, fp, code, msg, headers):
+		result = urllib2.HTTPError(req.get_full_url(), code, msg, headers, fp)
+		result.status = code
+		return result
+	http_error_301 = http_error_303 = http_error_307 = http_error_302
+
+def getSize(httpResp):
+	try:
+		contentSize = httpResp.headers['content-length']
+		return contentSize
+	except KeyError as e:
+		headers = httpResp.headers.keys()
+		if 'transfer-encoding' in headers and 'content-length' not in headers:
+			if httpResp.headers['transfer-encoding'] == 'chunked':
+				contentSize = "Chunked"
+				return "Chunked"	
+		return "ERROR"
+
 def parse(urlBase, delay, ignore):
 
 	urlRobots = urlBase + "/robots.txt"	
 	resp = urllib2.urlopen(urlRobots).readlines()
 	pathList = []
-	
+	opener = urllib2.build_opener(RedirectHandler())
 
 	for line in resp:
-		if "Disallow:" in line or "Allow:" in line:
-			pathList.append(line[line.index("/"):-1:])
+		if ("Disallow:" in line or "Allow:" in line) and "/" in line:
+			slash = line.index("/")
+			try:	
+				pathList.append(line[slash:-1:])
+
+			except ValueError as e:
+				print "Error Parsing: " + line
 
 	for item in pathList:
 		url = urlBase + item	
 		robResp = "XXX"
 			
 		try:
-			robResp = urllib2.urlopen(url)
-			print "{0:3} -- {1:40} -- {2:5}".format(robResp.code, item, str(robResp.headers['content-length']))
+			#robResp = urllib2.urlopen(url)
+			robResp = opener.open(url)
+		
+			print "{0:3} -- {1:40} -- {2:5}".format(robResp.code, item, getSize(robResp))
+			
+			if robResp.code == 301 or robResp.code == 302 or robResp.code == 303 or robResp.code == 307:
+				robResp2 = urllib2.urlopen(robResp.headers['location'])
+				print "    Redirect --> {0:3} -- {1:40} -- {2:5}".format(robResp2.code, robResp2.geturl(), getSize(robResp2))
+			
 	
 		except urllib2.HTTPError as e:
 			if not ignore:	
-				print "{0:3} -- {1:40} -- {2:5}".format(e.code, item, str(e.headers['content-length']))
+				print "{0:3} -- {1:40} -- {2:5}".format(e.code, item, getSize(e))
 
 		time.sleep(delay/1000)
 
